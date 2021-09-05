@@ -191,10 +191,22 @@ namespace Hangfire.PostgreSql
                 connectionStringBuilder.Enlist = false;
             }
 
-            var connection = new NpgsqlConnection(connectionStringBuilder.ToString());
+            NpgsqlConnection connection = null;
 
-            _connectionSetup?.Invoke(connection);
-            connection.Open();
+            try 
+            {
+                connection = new NpgsqlConnection(connectionStringBuilder.ToString());
+                _connectionSetup?.Invoke(connection);
+
+                if (connection.State == ConnectionState.Closed)
+                    connection.Open();
+            }
+            catch 
+            {
+                ReleaseConnection(connection);
+                throw;
+            }
+            
 
             return connection;
         }
